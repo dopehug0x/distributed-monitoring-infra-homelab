@@ -1,2 +1,30 @@
-.
+name: monitor
 
+services:
+  db:
+    image: timescale/timescaledb:latest-pg15
+    container_name: postgres-server
+    ports:
+      - 5432:5432
+    restart: always
+    networks:
+      - backend
+    shm_size: 1gb
+    environment:
+      - POSTGRES_DB=${DB:-default}
+      - POSTGRES_USER=${DB_USER:-default}
+      - POSTGRES_PASSWORD=${DB_PASS:-default}
+    volumes:
+      - ./zbx_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+  
+
+
+networks:
+  backend:
+  frontend:
