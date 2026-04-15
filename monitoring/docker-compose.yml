@@ -31,20 +31,30 @@ services:
 
   pgbouncer:
     image: edoburu/pgbouncer
-    ports:
-      - 6432:6432
+    container_name: pgbouncer
     networks:
       - backend
       - frontend
     environment:
+      - DATABASE_URL=postgres://${DB_USER}:${DB_PASS}@db:5432/${DB}
       - AUTH_TYPE=scram-sha-256
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=500
+      - DEFAULT_POOL_SIZE=50
+      - MIN_POOL_SIZE=20
+      - RESERVER_POOL_SIZE=10
+      - ADMIN_USERS=${DB_USER}
       - DB_HOST=db
       - DB_PORT=5432
+      - DB_NAME=${DB}
       - DB_USER=${DB_USER}
       - DB_PASS=${DB_PASS}
       - LISTEN_PORT=6432
+      - IGNORE_STARTUP_PARAMETERS=extra_float_digits,search_path
+
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   zabbix-server:
     image: zabbix/zabbix-server-pgsql:alpine-7.0-latest 
@@ -78,7 +88,6 @@ services:
 
   zabbix-web:
     image: zabbix/zabbix-web-nginx-pgsql:alpine-7.0-latest
-    
     container_name: zabbix-web
     ports:
       - 80:8080
