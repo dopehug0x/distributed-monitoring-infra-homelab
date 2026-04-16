@@ -32,6 +32,7 @@ services:
   pgbouncer:
     image: edoburu/pgbouncer
     container_name: pgbouncer
+    restart: always
     networks:
       - backend
       - frontend
@@ -42,7 +43,7 @@ services:
       - MAX_CLIENT_CONN=500
       - DEFAULT_POOL_SIZE=50
       - MIN_POOL_SIZE=20
-      - RESERVER_POOL_SIZE=10
+      - RESERVE_POOL_SIZE=10
       - ADMIN_USERS=${DB_USER}
       - DB_HOST=db
       - DB_PORT=5432
@@ -61,7 +62,7 @@ services:
     container_name: zabbix-server
     ports:
       - 10051:10051
-    restart: unless-stopped
+    restart: always
     networks:
       - frontend
     environment:
@@ -112,7 +113,35 @@ services:
       timeout: 5s
       retries: 3
       start_period: 60s
-      
+
+  zabbix-agent:
+    image: zabbix/zabbix-agent2:alpine-7.0-latest
+    container_name: zabbix-agent
+    restart: unless-stopped
+    networks:
+      - frontend
+    environment:
+      - ZBX_HOSTNAME=Zabbix server
+      - ZBX_SERVER_HOST=zabbix-server
+    <<: *common
+    depends_on:
+      zabbix-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "zabbix_agent2", "-t", "agente.ping"]
+      interval: 0s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+  grafana:
+    image: grafana/grafana
+    container_name: grafana
+    restart: unless-stopped
+    networks:
+      - frontend
+    ports:
+      - 3000:3000
 
 networks:
   backend:
